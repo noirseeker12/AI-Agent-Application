@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG-Fusion 流程可视化</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></svg>') repeat;
+            animation: float 20s linear infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .step-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .step {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid transparent;
+            min-width: 300px;
+            flex: 1;
+        }
+
+        .step:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            border-color: #667eea;
+        }
+
+        .step::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .step:hover::before {
+            transform: scaleX(1);
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .step-number::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: inherit;
+            z-index: -1;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .step-title {
+            font-size: 1.4em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .step-description {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .step-details {
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .step-details h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .step-details ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .step-details li {
+            padding: 5px 0;
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .step-details li::before {
+            content: '▶';
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-size: 0.8em;
+        }
+
+        .flow-arrow {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 2em;
+            color: #667eea;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        .demo-section {
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .demo-title {
+            font-size: 1.8em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .demo-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+            transition: border-color 0.3s ease;
+        }
+
+        .demo-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .demo-results {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .query-expansion {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .expanded-queries {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .query-tag {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            animation: fadeInUp 0.5s ease forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .retrieval-item {
+            background: #f0f8ff;
+            border-left: 4px solid #4CAF50;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            animation: slideInRight 0.6s ease forwards;
+            opacity: 0;
+            transform: translateX(30px);
+        }
+
+        @keyframes slideInRight {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .document-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            transition: all 0.4s ease;
+            opacity: 0;
+            transform: scale(0.9);
+        }
+
+        .document-card.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .document-card.highlighted {
+            border-color: #FF6B35;
+            background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+            transform: scale(1.02);
+        }
+
+        .score-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .score-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            width: 0%;
+            transition: width 1s ease;
+            border-radius: 3px;
+        }
+
+        .typing-text {
+            overflow: hidden;
+            border-right: 2px solid #667eea;
+            white-space: nowrap;
+            animation: typing 3s steps(100) forwards, blink 1s infinite;
+        }
+
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        @keyframes blink {
+            50% { border-color: transparent; }
+        }
+
+        .fusion-matrix {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .fusion-item {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            animation: popIn 0.5s ease forwards;
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        @keyframes popIn {
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .loading-dots {
+            display: inline-flex;
+            gap: 4px;
+        }
+
+        .loading-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: loadingDots 1.4s infinite ease-in-out;
+        }
+
+        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes loadingDots {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1.2); opacity: 1; }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .step-container {
+                flex-direction: column;
+            }
+            
+            .step {
+                min-width: auto;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .header p {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 RAG-Fusion 流程可视化</h1>
+            <p>检索增强生成的融合方法 - 提升检索质量与答案准确性</p>
+        </div>
+
+        <div class="content">
+            <div class="step-container">
+                <div class="step" onclick="highlightStep(1)">
+                    <div class="step-number">1</div>
+                    <div class="step-title">📝 用户查询输入</div>
+                    <div class="step-description">
+                        用户提出原始问题，系统接收并准备进行查询处理。
+                    </div>
+                    <div class="step-details">
+                        <h4>关键特点：</h4>
+                        <ul>
+                            <li>接收自然语言查询</li>
+                            <li>进行初步语言理解</li>
+                            <li>提取查询意图和关键词</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="step" onclick="highlightStep(2)">
+                    <div class="step-number">2</div>
+                    <div class="step-title">🎯 查询扩展生成</div>
+                    <div class="step-description">
+                        使用LLM生成多个相关的查询变体，从不同角度表达原始查询意图。
+                    </div>
+                    <div class="step-details">
+                        <h4>生成策略：</h4>
+                        <ul>
+                            <li>同义词替换和表达重构</li>
+                            <li>不同粒度的查询生成</li>
+                            <li>多角度问题表述</li>
+                            <li>通常生成3-5个扩展查询</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-arrow">⬇️</div>
+
+            <div class="step-container">
+                <div class="step" onclick="highlightStep(3)">
+                    <div class="step-number">3</div>
+                    <div class="step-title">🔍 并行向量检索</div>
+                    <div class="step-description">
+                        对每个扩展查询进行独立的向量相似度检索，获取相关文档片段。
+                    </div>
+                    <div class="step-details">
+                        <h4>检索过程：</h4>
+                        <ul>
+                            <li>查询向量化编码</li>
+                            <li>向量数据库相似度计算</li>
+                            <li>Top-K文档片段提取</li>
+                            <li>多路检索结果收集</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="step" onclick="highlightStep(4)">
+                    <div class="step-number">4</div>
+                    <div class="step-title">🔄 倒数排名融合</div>
+                    <div class="step-description">
+                        使用倒数排名融合(RRF)算法合并多个检索结果，提高整体检索质量。
+                    </div>
+                    <div class="step-details">
+                        <h4>融合算法：</h4>
+                        <ul>
+                            <li>RRF = Σ(1/(k+rank_i))</li>
+                            <li>k为平滑参数(通常为60)</li>
+                            <li>消除单一检索偏差</li>
+                            <li>提升相关文档排名</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-arrow">⬇️</div>
+
+            <div class="step-container">
+                <div class="step" onclick="highlightStep(5)">
+                    <div class="step-number">5</div>
+                    <div class="step-title">📊 文档重排序</div>
+                    <div class="step-description">
+                        根据融合分数对检索到的文档进行重新排序，选择最相关的文档。
+                    </div>
+                    <div class="step-details">
+                        <h4>排序策略：</h4>
+                        <ul>
+                            <li>基于RRF分数排序</li>
+                            <li>去除重复文档</li>
+                            <li>相关性阈值过滤</li>
+                            <li>选择Top-N文档</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="step" onclick="highlightStep(6)">
+                    <div class="step-number">6</div>
+                    <div class="step-title">🎯 答案生成</div>
+                    <div class="step-description">
+                        基于重排序后的文档和原始查询，使用LLM生成最终答案。
+                    </div>
+                    <div class="step-details">
+                        <h4>生成过程：</h4>
+                        <ul>
+                            <li>构建增强提示词</li>
+                            <li>结合检索文档上下文</li>
+                            <li>生成准确性更高的答案</li>
+                            <li>引用相关文档来源</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="demo-section">
+                <h2 class="demo-title">🚀 RAG-Fusion 演示</h2>
+                <input type="text" class="demo-input" id="userQuery" placeholder="请输入您的问题，例如：什么是机器学习？">
+                <button class="demo-btn" onclick="runDemo()">开始 RAG-Fusion 处理</button>
+                
+                <div class="progress-bar">
+                    <div class="progress" id="progress"></div>
+                </div>
+
+                <div class="demo-results" id="demoResults">
+                    <div class="query-expansion">
+                        <h3>📝 查询扩展结果</h3>
+                        <div class="expanded-queries" id="expandedQueries"></div>
+                    </div>
+                    
+                    <div class="query-expansion" id="retrievalSection" style="display: none;">
+                        <h3>🔍 并行向量检索</h3>
+                        <div id="retrievalProgress"></div>
+                        <div class="retrieval-results" id="retrievalResults"></div>
+                    </div>
+                    
+                    <div class="query-expansion" id="fusionSection" style="display: none;">
+                        <h3>🔄 倒数排名融合</h3>
+                        <div id="fusionVisualization"></div>
+                    </div>
+                    
+                    <div class="query-expansion" id="rerankSection" style="display: none;">
+                        <h3>📊 文档重排序</h3>
+                        <div id="rerankResults"></div>
+                    </div>
+                    
+                    <div class="query-expansion" id="answerSection" style="display: none;">
+                        <h3>🎯 最终答案生成</h3>
+                        <div id="finalAnswer"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function highlightStep(stepNum) {
+            // 移除所有高亮
+            document.querySelectorAll('.step').forEach(step => {
+                step.style.background = 'white';
+                step.style.transform = 'translateY(0)';
+            });
+            
+            // 高亮选中的步骤
+            const selectedStep = document.querySelectorAll('.step')[stepNum - 1];
+            selectedStep.style.background = 'linear-gradient(135deg, #f8f9ff, #e8f1ff)';
+            selectedStep.style.transform = 'translateY(-8px)';
+            
+            // 显示详细信息动画
+            selectedStep.querySelector('.step-details').style.animation = 'fadeInUp 0.5s ease';
+        }
+
+        async function runDemo() {
+            const query = document.getElementById('userQuery').value;
+            if (!query.trim()) {
+                alert('请输入一个查询问题！');
+                return;
+            }
+
+            const results = document.getElementById('demoResults');
+            const progress = document.getElementById('progress');
+            const expandedQueries = document.getElementById('expandedQueries');
+            
+            // 重置所有区域
+            results.style.display = 'block';
+            expandedQueries.innerHTML = '';
+            document.getElementById('retrievalSection').style.display = 'none';
+            document.getElementById('fusionSection').style.display = 'none';
+            document.getElementById('rerankSection').style.display = 'none';
+            document.getElementById('answerSection').style.display = 'none';
+            
+            // 步骤1: 查询扩展
+            progress.style.width = '20%';
+            const expansions = generateQueryExpansions(query);
+            
+            for (let i = 0; i < expansions.length; i++) {
+                await sleep(400);
+                const tag = document.createElement('div');
+                tag.className = 'query-tag';
+                tag.textContent = expansions[i];
+                tag.style.animationDelay = (i * 0.2) + 's';
+                expandedQueries.appendChild(tag);
+            }
+            
+            await sleep(1000);
+            
+            // 步骤2: 并行向量检索
+            progress.style.width = '40%';
+            await showRetrievalStep(expansions);
+            
+            await sleep(1500);
+            
+            // 步骤3: 倒数排名融合
+            progress.style.width = '60%';
+            await showFusionStep();
+            
+            await sleep(1500);
+            
+            // 步骤4: 文档重排序
+            progress.style.width = '80%';
+            await showRerankStep();
+            
+            await sleep(1500);
+            
+            // 步骤5: 答案生成
+            progress.style.width = '100%';
+            await showAnswerGeneration(query);
+        }
+
+        async function showRetrievalStep(queries) {
+            const section = document.getElementById('retrievalSection');
+            const progressDiv = document.getElementById('retrievalProgress');
+            const resultsDiv = document.getElementById('retrievalResults');
+            
+            section.style.display = 'block';
+            progressDiv.innerHTML = '<p>正在并行检索文档<span class="loading-dots"><span></span><span></span><span></span></span></p>';
+            resultsDiv.innerHTML = '';
+            
+            await sleep(800);
+            
+            // 模拟每个查询的检索结果
+            for (let i = 0; i < queries.length; i++) {
+                const retrievalItem = document.createElement('div');
+                retrievalItem.className = 'retrieval-item';
+                retrievalItem.style.animationDelay = (i * 0.3) + 's';
+                retrievalItem.innerHTML = `
+                    <strong>查询 ${i + 1}:</strong> "${queries[i]}"<br>
+                    <span style="color: #666;">检索到 ${Math.floor(Math.random() * 5) + 3} 个相关文档片段</span>
+                `;
+                resultsDiv.appendChild(retrievalItem);
+                await sleep(500);
+            }
+            
+            progressDiv.innerHTML = '<p style="color: #4CAF50;">✅ 检索完成，共获得 ' + (queries.length * 4) + ' 个文档片段</p>';
+        }
+
+        async function showFusionStep() {
+            const section = document.getElementById('fusionSection');
+            const visualization = document.getElementById('fusionVisualization');
+            
+            section.style.display = 'block';
+            visualization.innerHTML = '<p>正在应用倒数排名融合算法<span class="loading-dots"><span></span><span></span><span></span></span></p>';
+            
+            await sleep(1000);
+            
+            // 显示融合过程
+            const fusionMatrix = document.createElement('div');
+            fusionMatrix.className = 'fusion-matrix';
+            
+            const documents = [
+                { title: '机器学习基础教程', score: 0.89 },
+                { title: '深度学习原理详解', score: 0.85 },
+                { title: '人工智能概论', score: 0.82 },
+                { title: '数据科学入门指南', score: 0.78 }
+            ];
+            
+            for (let i = 0; i < documents.length; i++) {
+                const item = document.createElement('div');
+                item.className = 'fusion-item';
+                item.style.animationDelay = (i * 0.2) + 's';
+                item.innerHTML = `
+                    <h4>${documents[i].title}</h4>
+                    <div class="score-bar">
+                        <div class="score-fill" style="animation-delay: ${i * 0.2 + 0.5}s; width: ${documents[i].score * 100}%;"></div>
+                    </div>
+                    <span>RRF分数: ${documents[i].score.toFixed(3)}</span>
+                `;
+                fusionMatrix.appendChild(item);
+                await sleep(300);
+            }
+            
+            visualization.innerHTML = '<p style="color: #4CAF50;">✅ 融合计算完成</p>';
+            visualization.appendChild(fusionMatrix);
+        }
+
+        async function showRerankStep() {
+            const section = document.getElementById('rerankSection');
+            const results = document.getElementById('rerankResults');
+            
+            section.style.display = 'block';
+            results.innerHTML = '<p>正在重新排序文档<span class="loading-dots"><span></span><span></span><span></span></span></p>';
+            
+            await sleep(800);
+            
+            const documents = [
+                { title: '机器学习基础教程', content: '机器学习是人工智能的一个分支，专门研究计算机怎样模拟或实现人类的学习行为...', rank: 1, highlighted: true },
+                { title: '深度学习原理详解', content: '深度学习是机器学习的一个子领域，它基于人工神经网络的研究...', rank: 2 },
+                { title: '人工智能概论', content: '人工智能是研究、开发用于模拟、延伸和扩展人的智能的理论、方法、技术及应用系统的一门新的技术科学...', rank: 3 }
+            ];
+            
+            results.innerHTML = '';
+            
+            for (let i = 0; i < documents.length; i++) {
+                const card = document.createElement('div');
+                card.className = 'document-card';
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h4>排名 #${documents[i].rank}: ${documents[i].title}</h4>
+                        <span style="background: #4CAF50; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.8em;">
+                            ${documents[i].highlighted ? '最相关' : '相关'}
+                        </span>
+                    </div>
+                    <p style="color: #666; margin-top: 10px;">${documents[i].content}</p>
+                `;
+                
+                results.appendChild(card);
+                
+                await sleep(400);
+                card.classList.add('show');
+                
+                if (documents[i].highlighted) {
+                    await sleep(200);
+                    card.classList.add('highlighted');
+                }
+            }
+        }
+
+        async function showAnswerGeneration(originalQuery) {
+            const section = document.getElementById('answerSection');
+            const answer = document.getElementById('finalAnswer');
+            
+            section.style.display = 'block';
+            answer.innerHTML = '<p>正在基于检索文档生成答案<span class="loading-dots"><span></span><span></span><span></span></span></p>';
+            
+            await sleep(1500);
+            
+            const generatedAnswer = generateAnswer(originalQuery);
+            const typingContainer = document.createElement('div');
+            typingContainer.className = 'typing-text';
+            typingContainer.style.background = 'linear-gradient(135deg, #f0f8ff, #e6f3ff)';
+            typingContainer.style.padding = '20px';
+            typingContainer.style.borderRadius = '10px';
+            typingContainer.style.border = '2px solid #4CAF50';
+            typingContainer.style.whiteSpace = 'pre-wrap';
+            typingContainer.textContent = generatedAnswer;
+            
+            answer.innerHTML = '<p style="color: #4CAF50; margin-bottom: 15px;">✅ 答案生成完成</p>';
+            answer.appendChild(typingContainer);
+            
+            // 添加引用信息
+            await sleep(3000);
+            const citation = document.createElement('div');
+            citation.style.marginTop = '15px';
+            citation.style.padding = '10px';
+            citation.style.background = '#f9f9f9';
+            citation.style.borderRadius = '8px';
+            citation.style.fontSize = '0.9em';
+            citation.style.color = '#666';
+            citation.innerHTML = '<strong>📚 引用来源:</strong> 机器学习基础教程, 深度学习原理详解';
+            answer.appendChild(citation);
+        }
+
+        function generateAnswer(query) {
+            const answers = {
+                '机器学习': '机器学习是人工智能的一个重要分支，它使计算机系统能够从数据中自动学习和改进，而无需被明确编程。\n\n核心特点包括：\n• 数据驱动的学习过程\n• 模式识别和预测能力  \n• 持续优化和改进\n• 广泛的应用领域\n\n机器学习主要分为监督学习、无监督学习和强化学习三大类，在图像识别、自然语言处理、推荐系统等领域都有重要应用。',
+                '深度学习': '深度学习是机器学习的一个子领域，基于人工神经网络进行学习和决策。\n\n主要特征：\n• 多层神经网络结构\n• 自动特征提取能力\n• 处理大规模数据\n• 在图像、语音、NLP等领域表现卓越\n\n深度学习通过模拟人脑神经元的工作方式，能够处理更复杂的模式识别任务。',
+                '人工智能': '人工智能(AI)是研究、开发用于模拟、延伸和扩展人类智能的理论、方法、技术及应用系统的综合性学科。\n\n发展历程：\n• 1956年达特茅斯会议确立概念\n• 经历多次发展浪潮\n• 当前进入深度学习时代\n\n应用领域广泛，包括自动驾驶、医疗诊断、金融风控、智能客服等，正在深刻改变人类社会的各个方面。'
+            };
+            
+            // 简单的关键词匹配
+            for (const [key, value] of Object.entries(answers)) {
+                if (query.includes(key)) {
+                    return value;
+                }
+            }
+            
+            return `基于检索到的相关文档，为您的问题"${query}"生成了综合性回答。\n\n通过RAG-Fusion技术，我们从多个角度检索了相关信息，并融合了多个高质量文档的内容，确保答案的准确性和完整性。\n\n这种方法相比传统RAG能够：\n• 提高检索召回率\n• 减少单一检索偏差\n• 增强答案质量\n• 提供更全面的信息覆盖`;
+        }
+
+        function generateQueryExpansions(originalQuery) {
+            // 模拟查询扩展生成
+            const templates = [
+                `${originalQuery}的基本概念`,
+                `如何理解${originalQuery}`,
+                `${originalQuery}的应用场景`,
+                `${originalQuery}详细解释`,
+                `关于${originalQuery}的核心要点`
+            ];
+            
+            return templates.slice(0, Math.min(4, templates.length));
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // 页面加载完成后的初始动画
+        window.addEventListener('load', function() {
+            const steps = document.querySelectorAll('.step');
+            steps.forEach((step, index) => {
+                step.style.opacity = '0';
+                step.style.transform = 'translateY(30px)';
+                setTimeout(() => {
+                    step.style.transition = 'all 0.6s ease';
+                    step.style.opacity = '1';
+                    step.style.transform = 'translateY(0)';
+                }, index * 200);
+            });
+        });
+    </script>
+</body>
+</html>
