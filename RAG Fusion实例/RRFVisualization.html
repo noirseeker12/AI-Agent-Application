@@ -5,238 +5,485 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RRF算法可视化动画</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #667eea 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
             margin: 0;
             padding: 20px;
             color: #333;
             min-height: 100vh;
         }
 
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            padding: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            box-shadow:
+                0 25px 50px rgba(0,0,0,0.1),
+                0 0 0 1px rgba(255,255,255,0.2);
+            padding: 40px;
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         h1 {
             text-align: center;
-            color: #4a5568;
-            margin-bottom: 30px;
-            font-size: 2.5em;
-            font-weight: bold;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 40px;
+            font-size: 3em;
+            font-weight: 700;
+            letter-spacing: -2px;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
         .controls {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         button {
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             border: none;
-            padding: 12px 24px;
-            margin: 0 10px;
-            border-radius: 25px;
+            padding: 15px 30px;
+            border-radius: 50px;
             cursor: pointer;
             font-size: 16px;
-            font-weight: bold;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            box-shadow:
+                0 8px 20px rgba(102, 126, 234, 0.3),
+                0 0 0 1px rgba(255,255,255,0.1);
+            position: relative;
+            overflow: hidden;
+            min-width: 140px;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        button:hover::before {
+            left: 100%;
         }
 
         button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+            transform: translateY(-3px);
+            box-shadow:
+                0 12px 30px rgba(102, 126, 234, 0.4),
+                0 0 0 1px rgba(255,255,255,0.2);
+        }
+
+        button:active {
+            transform: translateY(-1px);
         }
 
         button:disabled {
-            background: #ccc;
+            background: linear-gradient(135deg, #cbd5e0, #a0aec0);
             cursor: not-allowed;
-            box-shadow: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             transform: none;
         }
 
         .step-info {
             text-align: center;
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 20px;
-            padding: 15px;
-            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
+            border-radius: 15px;
+            box-shadow:
+                0 10px 25px rgba(240, 147, 251, 0.3),
+                0 0 0 1px rgba(255,255,255,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step-info::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #f093fb, #f5576c, #f093fb);
+            border-radius: 15px;
+            z-index: -1;
+            animation: borderGlow 3s linear infinite;
+        }
+
+        @keyframes borderGlow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
 
         .visualization {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 30px;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
         }
 
         .query-section {
-            flex: 1;
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            background: rgba(248, 249, 250, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow:
+                0 10px 25px rgba(0,0,0,0.08),
+                0 0 0 1px rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .query-section:hover {
+            transform: translateY(-5px);
         }
 
         .query-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            color: #4a5568;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #2d3748;
             text-align: center;
+            padding: 15px;
+            background: linear-gradient(135deg, #e6fffa, #b2f5ea);
+            border-radius: 10px;
+            border-left: 4px solid #38b2ac;
         }
 
         .document {
             background: white;
             border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px 0;
-            transition: all 0.5s ease;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             position: relative;
+            overflow: hidden;
+        }
+
+        .document::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .document:hover::before {
+            transform: scaleX(1);
         }
 
         .document.highlight {
-            background: linear-gradient(45deg, #ffecd2 0%, #fcb69f 100%);
+            background: linear-gradient(135deg, #fef7e0 0%, #fed7aa 100%);
             border-color: #f6ad55;
-            transform: scale(1.05);
-            box-shadow: 0 8px 25px rgba(246, 173, 85, 0.4);
+            transform: scale(1.05) rotateY(5deg);
+            box-shadow:
+                0 15px 35px rgba(246, 173, 85, 0.4),
+                0 0 0 1px rgba(255,255,255,0.2);
         }
 
         .document.current {
-            background: linear-gradient(45deg, #a8edea 0%, #fed6e3 100%);
-            border-color: #4fd1c7;
-            animation: pulse 1s infinite;
+            background: linear-gradient(135deg, #e0f7ff 0%, #bfdbfe 100%);
+            border-color: #3b82f6;
+            animation: currentPulse 2s infinite;
+            box-shadow:
+                0 15px 35px rgba(59, 130, 246, 0.3),
+                0 0 0 1px rgba(255,255,255,0.2);
         }
 
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); }
+        @keyframes currentPulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 15px 35px rgba(59, 130, 246, 0.3);
+            }
+            50% {
+                transform: scale(1.02);
+                box-shadow: 0 20px 45px rgba(59, 130, 246, 0.4);
+            }
         }
 
         .doc-id {
-            font-weight: bold;
-            color: #2d3748;
-            font-size: 16px;
+            font-weight: 700;
+            color: #1a202c;
+            font-size: 18px;
+            margin-bottom: 8px;
         }
 
         .doc-score {
-            color: #718096;
+            color: #4a5568;
             font-size: 14px;
-            margin: 5px 0;
+            margin: 8px 0;
+            font-weight: 500;
         }
 
         .doc-rank {
             position: absolute;
-            top: -10px;
-            right: -10px;
-            background: #667eea;
+            top: -12px;
+            right: -12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             border-radius: 50%;
-            width: 25px;
-            height: 25px;
+            width: 32px;
+            height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            font-size: 12px;
+            font-weight: 700;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            border: 2px solid white;
         }
 
         .rrf-calculation {
-            background: #fff5f5;
-            border: 2px solid #fed7d7;
-            border-radius: 8px;
-            padding: 10px;
-            margin: 5px 0;
-            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            border: 2px solid #fca5a5;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Monaco', 'Courier New', monospace;
             font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(252, 165, 165, 0.2);
         }
 
         .final-results {
-            background: #f0fff4;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 30px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, #f0fff4, #dcfce7);
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 40px;
+            box-shadow:
+                0 15px 35px rgba(34, 197, 94, 0.15),
+                0 0 0 1px rgba(255,255,255,0.1);
+            border: 1px solid rgba(34, 197, 94, 0.1);
         }
 
         .final-title {
-            font-size: 20px;
-            font-weight: bold;
-            color: #2f855a;
+            font-size: 24px;
+            font-weight: 700;
+            color: #166534;
             text-align: center;
-            margin-bottom: 15px;
+            margin-bottom: 25px;
+            text-shadow: 0 2px 4px rgba(22, 101, 52, 0.1);
         }
 
         .final-document {
             background: white;
-            border: 2px solid #9ae6b4;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px 0;
+            border: 2px solid #86efac;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 20px rgba(134, 239, 172, 0.15);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .final-document::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .final-document:hover {
+            transform: translateX(5px);
+            border-color: #22c55e;
+            box-shadow: 0 12px 30px rgba(34, 197, 94, 0.2);
+        }
+
+        .final-document:hover::before {
+            left: 100%;
         }
 
         .final-rank {
-            background: #38a169;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
             color: white;
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
+            width: 40px;
+            height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
+            font-weight: 700;
+            font-size: 18px;
+            box-shadow: 0 6px 15px rgba(34, 197, 94, 0.3);
+            border: 3px solid white;
         }
 
         .progress-bar {
             width: 100%;
-            height: 10px;
-            background: #e2e8f0;
-            border-radius: 5px;
-            margin: 20px 0;
+            height: 12px;
+            background: rgba(226, 232, 240, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 6px;
+            margin: 25px 0;
             overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            border-radius: 5px;
-            transition: width 0.5s ease;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+            border-radius: 6px;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: progressShine 2s infinite;
+        }
+
+        @keyframes progressShine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
         }
 
         .formula {
-            background: #edf2f7;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 15px 0;
-            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #f7fafc, #edf2f7);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Monaco', 'Courier New', monospace;
             text-align: center;
-            font-size: 16px;
-            border-left: 4px solid #667eea;
+            font-size: 18px;
+            font-weight: 600;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.1);
+            color: #2d3748;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            button {
+                min-width: 200px;
+            }
+
+            .visualization {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .query-section {
+                padding: 20px;
+            }
+        }
+
+        /* 暗色主题支持 */
+        @media (prefers-color-scheme: dark) {
+            .container {
+                background: rgba(26, 32, 44, 0.95);
+                color: #e2e8f0;
+            }
+
+            .query-section {
+                background: rgba(45, 55, 72, 0.8);
+            }
+
+            .document {
+                background: rgba(74, 85, 104, 0.3);
+                border-color: #4a5568;
+                color: #e2e8f0;
+            }
+
+            .doc-id {
+                color: #f7fafc;
+            }
+        }
+
+        /* 加载动画 */
+        .fade-in {
+            animation: fadeIn 0.6s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 悬浮效果 */
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+
+        @keyframes floating {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🔄 RRF算法可视化动画</h1>
+    <div class="container fade-in">
+        <h1 class="floating">🔄 RRF算法可视化动画</h1>
 
         <div class="controls">
             <button id="startBtn">🚀 开始演示</button>
@@ -326,11 +573,12 @@
 
                 searchData[query].forEach((doc, docIndex) => {
                     const docDiv = document.createElement('div');
-                    docDiv.className = 'document';
+                    docDiv.className = 'document fade-in';
+                    docDiv.style.animationDelay = `${docIndex * 0.1}s`;
                     docDiv.innerHTML = `
                         <div class="doc-id">${doc.id}</div>
                         <div class="doc-score">原始距离分数: ${doc.score}</div>
-                        <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                        <div style="font-size: 13px; color: #666; margin-top: 8px; line-height: 1.4;">
                             ${doc.content}
                         </div>
                     `;
@@ -357,8 +605,10 @@
 
             if (queryIndex >= 0) {
                 const container = document.getElementById(`query${queryIndex + 1}-docs`);
-                container.querySelectorAll('.document').forEach(doc => {
-                    doc.classList.add('highlight');
+                container.querySelectorAll('.document').forEach((doc, index) => {
+                    setTimeout(() => {
+                        doc.classList.add('highlight');
+                    }, index * 150);
                 });
             }
         }
@@ -373,15 +623,16 @@
 
             sortedDocs.forEach((doc, rank) => {
                 const docDiv = document.createElement('div');
-                docDiv.className = 'document current';
+                docDiv.className = 'document current fade-in';
+                docDiv.style.animationDelay = `${rank * 0.2}s`;
                 docDiv.innerHTML = `
                     <div class="doc-rank">${rank + 1}</div>
                     <div class="doc-id">${doc.id}</div>
                     <div class="doc-score">距离分数: ${doc.score}</div>
                     <div class="rrf-calculation">
-                        排名: ${rank + 1} → RRF分数: 1/(${rank}+${k}) = ${(1/(rank + k)).toFixed(4)}
+                        排名: ${rank + 1} → RRF分数: 1/(${rank + 1}+${k}) = ${(1/(rank + 1 + k)).toFixed(4)}
                     </div>
-                    <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                    <div style="font-size: 13px; color: #666; margin-top: 8px; line-height: 1.4;">
                         ${doc.content}
                     </div>
                 `;
@@ -402,7 +653,7 @@
                         appearances: 0
                     };
                 }
-                fusedScores[doc.id].fusedScore += 1 / (rank + k);
+                fusedScores[doc.id].fusedScore += 1 / (rank + 1 + k);
                 fusedScores[doc.id].appearances++;
             });
         }
@@ -419,25 +670,21 @@
 
             sortedResults.forEach(([docId, info], index) => {
                 const docDiv = document.createElement('div');
-                docDiv.className = 'final-document';
+                docDiv.className = 'final-document fade-in';
+                docDiv.style.animationDelay = `${index * 0.2}s`;
                 docDiv.innerHTML = `
                     <div>
                         <div class="doc-id">${docId}</div>
-                        <div style="font-size: 14px; color: #666; margin: 5px 0;">
+                        <div style="font-size: 15px; color: #4a5568; margin: 8px 0; font-weight: 500;">
                             RRF分数: ${info.fusedScore.toFixed(4)} | 出现次数: ${info.appearances}
                         </div>
-                        <div style="font-size: 12px; color: #888;">
+                        <div style="font-size: 13px; color: #718096; line-height: 1.4;">
                             ${info.content}
                         </div>
                     </div>
                     <div class="final-rank">${index + 1}</div>
                 `;
                 container.appendChild(docDiv);
-
-                // 添加动画效果
-                setTimeout(() => {
-                    docDiv.style.animation = 'pulse 0.5s ease-in-out';
-                }, index * 200);
             });
         }
 
@@ -453,28 +700,28 @@
                     break;
                 case 1:
                     highlightQuery(0);
-                    sortAndShowRanks(0);
+                    setTimeout(() => sortAndShowRanks(0), 800);
                     break;
                 case 2:
                     calculateRRF(0);
                     break;
                 case 3:
                     highlightQuery(1);
-                    sortAndShowRanks(1);
+                    setTimeout(() => sortAndShowRanks(1), 800);
                     break;
                 case 4:
                     calculateRRF(1);
                     break;
                 case 5:
                     highlightQuery(2);
-                    sortAndShowRanks(2);
+                    setTimeout(() => sortAndShowRanks(2), 800);
                     break;
                 case 6:
                     calculateRRF(2);
                     break;
                 case 7:
                     highlightQuery(-1);
-                    showFinalResults();
+                    setTimeout(showFinalResults, 500);
                     break;
             }
 
@@ -527,7 +774,7 @@
                         return;
                     }
                     nextStep();
-                }, 2000);
+                }, 3000);
 
                 isAutoPlaying = true;
                 document.getElementById('autoBtn').textContent = '⏸️ 暂停';
@@ -544,6 +791,18 @@
         document.getElementById('nextBtn').addEventListener('click', nextStep);
         document.getElementById('resetBtn').addEventListener('click', reset);
         document.getElementById('autoBtn').addEventListener('click', toggleAutoPlay);
+
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' && !document.getElementById('nextBtn').disabled) {
+                nextStep();
+            } else if (e.key === 'r' || e.key === 'R') {
+                reset();
+            } else if (e.key === ' ') {
+                e.preventDefault();
+                toggleAutoPlay();
+            }
+        });
 
         // 初始化
         initializeDisplay();
