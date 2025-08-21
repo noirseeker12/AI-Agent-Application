@@ -6,7 +6,7 @@
     <title>RRF算法可视化动画</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
+        
         * {
             margin: 0;
             padding: 0;
@@ -36,7 +36,7 @@
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
             border-radius: 20px;
-            box-shadow:
+            box-shadow: 
                 0 25px 50px rgba(0,0,0,0.1),
                 0 0 0 1px rgba(255,255,255,0.2);
             padding: 40px;
@@ -76,7 +76,7 @@
             font-weight: 600;
             font-family: 'Inter', sans-serif;
             transition: all 0.3s ease;
-            box-shadow:
+            box-shadow: 
                 0 8px 20px rgba(102, 126, 234, 0.3),
                 0 0 0 1px rgba(255,255,255,0.1);
             position: relative;
@@ -101,7 +101,7 @@
 
         button:hover {
             transform: translateY(-3px);
-            box-shadow:
+            box-shadow: 
                 0 12px 30px rgba(102, 126, 234, 0.4),
                 0 0 0 1px rgba(255,255,255,0.2);
         }
@@ -126,7 +126,7 @@
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: white;
             border-radius: 15px;
-            box-shadow:
+            box-shadow: 
                 0 10px 25px rgba(240, 147, 251, 0.3),
                 0 0 0 1px rgba(255,255,255,0.1);
             position: relative;
@@ -163,7 +163,7 @@
             backdrop-filter: blur(10px);
             border-radius: 15px;
             padding: 25px;
-            box-shadow:
+            box-shadow: 
                 0 10px 25px rgba(0,0,0,0.08),
                 0 0 0 1px rgba(255,255,255,0.1);
             border: 1px solid rgba(255,255,255,0.1);
@@ -218,7 +218,7 @@
             background: linear-gradient(135deg, #fef7e0 0%, #fed7aa 100%);
             border-color: #f6ad55;
             transform: scale(1.05) rotateY(5deg);
-            box-shadow:
+            box-shadow: 
                 0 15px 35px rgba(246, 173, 85, 0.4),
                 0 0 0 1px rgba(255,255,255,0.2);
         }
@@ -227,17 +227,17 @@
             background: linear-gradient(135deg, #e0f7ff 0%, #bfdbfe 100%);
             border-color: #3b82f6;
             animation: currentPulse 2s infinite;
-            box-shadow:
+            box-shadow: 
                 0 15px 35px rgba(59, 130, 246, 0.3),
                 0 0 0 1px rgba(255,255,255,0.2);
         }
 
         @keyframes currentPulse {
-            0%, 100% {
+            0%, 100% { 
                 transform: scale(1);
                 box-shadow: 0 15px 35px rgba(59, 130, 246, 0.3);
             }
-            50% {
+            50% { 
                 transform: scale(1.02);
                 box-shadow: 0 20px 45px rgba(59, 130, 246, 0.4);
             }
@@ -292,7 +292,7 @@
             border-radius: 15px;
             padding: 30px;
             margin-top: 40px;
-            box-shadow:
+            box-shadow: 
                 0 15px 35px rgba(34, 197, 94, 0.15),
                 0 0 0 1px rgba(255,255,255,0.1);
             border: 1px solid rgba(34, 197, 94, 0.1);
@@ -629,14 +629,34 @@
                     <div class="doc-rank">${rank + 1}</div>
                     <div class="doc-id">${doc.id}</div>
                     <div class="doc-score">距离分数: ${doc.score}</div>
-                    <div class="rrf-calculation">
-                        排名: ${rank + 1} → RRF分数: 1/(${rank + 1}+${k}) = ${(1/(rank + 1 + k)).toFixed(4)}
-                    </div>
                     <div style="font-size: 13px; color: #666; margin-top: 8px; line-height: 1.4;">
                         ${doc.content}
                     </div>
                 `;
                 container.appendChild(docDiv);
+            });
+        }
+
+        function showRRFCalculation(queryIndex) {
+            const queries = ["气候变化", "全球变暖", "环境影响"];
+            const query = queries[queryIndex];
+            const sortedDocs = [...searchData[query]].sort((a, b) => a.score - b.score);
+
+            const container = document.getElementById(`query${queryIndex + 1}-docs`);
+            const documents = container.querySelectorAll('.document');
+
+            documents.forEach((docDiv, rank) => {
+                const doc = sortedDocs[rank];
+                const rrfCalculationDiv = document.createElement('div');
+                rrfCalculationDiv.className = 'rrf-calculation fade-in';
+                rrfCalculationDiv.style.animationDelay = `${rank * 0.1}s`;
+                rrfCalculationDiv.innerHTML = `
+                    排名: ${rank + 1} → RRF分数: 1/(${rank + 1}+${k}) = ${(1/(rank + 1 + k)).toFixed(4)}
+                `;
+                
+                // 在doc-score后插入RRF计算
+                const scoreDiv = docDiv.querySelector('.doc-score');
+                scoreDiv.insertAdjacentElement('afterend', rrfCalculationDiv);
             });
         }
 
@@ -703,6 +723,7 @@
                     setTimeout(() => sortAndShowRanks(0), 800);
                     break;
                 case 2:
+                    showRRFCalculation(0);
                     calculateRRF(0);
                     break;
                 case 3:
@@ -710,6 +731,7 @@
                     setTimeout(() => sortAndShowRanks(1), 800);
                     break;
                 case 4:
+                    showRRFCalculation(1);
                     calculateRRF(1);
                     break;
                 case 5:
@@ -717,6 +739,7 @@
                     setTimeout(() => sortAndShowRanks(2), 800);
                     break;
                 case 6:
+                    showRRFCalculation(2);
                     calculateRRF(2);
                     break;
                 case 7:
